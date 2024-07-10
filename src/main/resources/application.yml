@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: planner
+
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/planner
+    username: planner_api
+    password: api
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop

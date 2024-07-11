@@ -20,10 +20,7 @@ public class TripController {
     public ResponseEntity<TripResponse> createTrip(@RequestBody TripRequest request, UriComponentsBuilder uriBuilder) {
         Trip tripSaved = this.repository.save(new Trip(request));
 
-        URI uri = uriBuilder.path("/trips/{id}")
-                .buildAndExpand(tripSaved.getId())
-                .toUri();
-
+        URI uri = createUri(tripSaved.getId(), uriBuilder);
         return ResponseEntity.created(uri)
                 .body(new TripResponse(tripSaved.getId(), tripSaved.getOwnerName()));
     }
@@ -34,5 +31,11 @@ public class TripController {
 
         return tripNullable.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    
+    private URI createUri(UUID id, UriComponentsBuilder uriBuilder) {
+        return uriBuilder.path("/trips/{tripId}")
+                .buildAndExpand(id)
+                .toUri();
     }
 }

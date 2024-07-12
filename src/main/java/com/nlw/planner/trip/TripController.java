@@ -1,5 +1,6 @@
 package com.nlw.planner.trip;
 
+import com.nlw.planner.participant.ParticipantService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,10 +18,12 @@ import java.util.UUID;
 public class TripController {
 
     private final TripRepository repository;
+    private final ParticipantService participantService;
 
     @PostMapping()
     public ResponseEntity<TripResponse> createTrip(@RequestBody TripRequest request, UriComponentsBuilder uriBuilder) {
         Trip tripSaved = this.repository.save(new Trip(request));
+        this.participantService.registerParticipantToEvent(request.guestEmails(), tripSaved.getId());
 
         URI uri = createUri(tripSaved.getId(), uriBuilder);
         return ResponseEntity.created(uri)
@@ -38,22 +41,41 @@ public class TripController {
     @PutMapping("/{tripId}")
     public ResponseEntity<Trip> updateTrip(@PathVariable UUID tripId,
                                            @RequestBody TripRequest request) {
-        
+
         Optional<Trip> tripNullable = this.repository.findById(tripId);
 
         if(tripNullable.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        System.out.println(request);
+        Trip trip = tripNullable.get();
+        trip.setDestination(request.destination());
+        trip.setStartsAt(parseToLocalDateTime(request.startsAt()));
+        trip.setEndsAt(parseToLocalDateTime(request.endsAt()));
+        this.repository.save(trip);
 
-        Trip updatedTrip = tripNullable.get();
-        updatedTrip.setDestination(request.destination());
-        updatedTrip.setStartsAt(parseToLocalDateTime(request.startsAt()));
-        updatedTrip.setEndsAt(parseToLocalDateTime(request.endsAt()));
-        this.repository.save(updatedTrip);
+        return ResponseEntity.ok(trip);
+    }
 
-        return ResponseEntity.ok(updatedTrip);
+    @GetMapping("/{tripId}/confirm")
+    public ResponseEntity<Trip> confirmTrip(@PathVariable UUID tripId) {
+        Optional<Trip> tripNullable = this.repository.findById(tripId);
+
+        if(tripNullable.isPresent()) {
+            Trip trip = tripNullable.get();
+            trip.setConfirmed(true);
+
+            this.repository.save(trip);
+
+            /*
+               Dispara confirmaçao para convidados da viagem.
+               Sera implementando posteriormente.
+             */
+            this.participantService.sendConfirmationToParticipants(tripId);
+            return ResponseEntity.ok(trip);
+        }
+
+        return ResponseEntity.notFound().build();
     }
 
     private LocalDateTime parseToLocalDateTime(String textDate) {

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Setter
 public class Trip {
 
     @Id
@@ -42,7 +44,7 @@ public class Trip {
         this.destination = request.destination();
         this.ownerName = request.ownerName();
         this.ownerEmail = request.ownerEmail();
-        this.startsAt = LocalDateTime.parse(request.startAt(), DateTimeFormatter.ISO_DATE_TIME);
+        this.startsAt = LocalDateTime.parse(request.startsAt(), DateTimeFormatter.ISO_DATE_TIME);
         this.endsAt = LocalDateTime.parse(request.endsAt(), DateTimeFormatter.ISO_DATE_TIME);
         this.isConfirmed = false;
     }

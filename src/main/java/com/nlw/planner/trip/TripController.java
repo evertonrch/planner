@@ -1,5 +1,8 @@
 package com.nlw.planner.trip;
 
+import com.nlw.planner.participant.Participant;
+import com.nlw.planner.participant.ParticipantRequest;
+import com.nlw.planner.participant.ParticipantResponse;
 import com.nlw.planner.participant.ParticipantService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,7 +27,7 @@ public class TripController {
     @PostMapping()
     public ResponseEntity<TripResponse> createTrip(@RequestBody TripRequest request, UriComponentsBuilder uriBuilder) {
         Trip tripSaved = this.repository.save(new Trip(request));
-        this.participantService.registerParticipantToEvent(request.guestEmails(), tripSaved.getId());
+        this.participantService.registerParticipantsToEvent(request.guestEmails(), tripSaved);
 
         URI uri = createUri(tripSaved.getId(), uriBuilder);
         return ResponseEntity.created(uri)
@@ -44,7 +48,7 @@ public class TripController {
 
         Optional<Trip> tripNullable = this.repository.findById(tripId);
 
-        if(tripNullable.isEmpty()) {
+        if (tripNullable.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
@@ -61,7 +65,7 @@ public class TripController {
     public ResponseEntity<Trip> confirmTrip(@PathVariable UUID tripId) {
         Optional<Trip> tripNullable = this.repository.findById(tripId);
 
-        if(tripNullable.isPresent()) {
+        if (tripNullable.isPresent()) {
             Trip trip = tripNullable.get();
             trip.setConfirmed(true);
 
@@ -76,6 +80,35 @@ public class TripController {
         }
 
         return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/{id}/invite")
+    public ResponseEntity<ParticipantResponse> inviteParticipant(@PathVariable UUID id,
+                                                                 @RequestBody ParticipantRequest request) {
+
+        Optional<Trip> tripNullable = this.repository.findById(id);
+
+        if (tripNullable.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Trip trip = tripNullable.get();
+        var participantResponse = this.participantService
+                .registerParticipantToEvent(request.email(), trip);
+
+        if (trip.isConfirmed()) {
+            this.participantService.sendConfirmationToParticipant(request.email());
+        }
+
+        return ResponseEntity.ok(participantResponse);
+    }
+
+    @GetMapping("/{id}/participants")
+    public ResponseEntity<List<Participant>> getAllParticipants(@PathVariable UUID id) {
+        var participants = this.participantService.getAllParticipantsFromTrip(id);
+        return participants.isEmpty() ?
+                ResponseEntity.noContent().build() :
+                ResponseEntity.ok(participants);
     }
 
     private LocalDateTime parseToLocalDateTime(String textDate) {

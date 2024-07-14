@@ -1,9 +1,6 @@
 package com.nlw.planner.trip;
 
-import com.nlw.planner.participant.Participant;
-import com.nlw.planner.participant.ParticipantRequest;
-import com.nlw.planner.participant.ParticipantResponse;
-import com.nlw.planner.participant.ParticipantService;
+import com.nlw.planner.participant.*;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -104,8 +101,12 @@ public class TripController {
     }
 
     @GetMapping("/{id}/participants")
-    public ResponseEntity<List<Participant>> getAllParticipants(@PathVariable UUID id) {
-        var participants = this.participantService.getAllParticipantsFromTrip(id);
+    public ResponseEntity<List<ParticipantDetailsResponse>> getAllParticipants(@PathVariable UUID id) {
+        var participants = this.participantService.getAllParticipantsFromTrip(id)
+                .stream()
+                .map(p -> new ParticipantDetailsResponse(p.getName(), p.getEmail(), p.isConfirmed()))
+                .toList();
+
         return participants.isEmpty() ?
                 ResponseEntity.noContent().build() :
                 ResponseEntity.ok(participants);

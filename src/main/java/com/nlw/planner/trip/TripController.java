@@ -1,6 +1,17 @@
 package com.nlw.planner.trip;
 
-import com.nlw.planner.participant.*;
+import com.nlw.planner.activitie.ActivityDetailResponse;
+import com.nlw.planner.activitie.ActivityRequest;
+import com.nlw.planner.activitie.ActivityResponse;
+import com.nlw.planner.activitie.ActivityService;
+import com.nlw.planner.link.LinkDetailResponse;
+import com.nlw.planner.link.LinkRequest;
+import com.nlw.planner.link.LinkResponse;
+import com.nlw.planner.link.LinkService;
+import com.nlw.planner.participant.ParticipantDetailsResponse;
+import com.nlw.planner.participant.ParticipantRequest;
+import com.nlw.planner.participant.ParticipantResponse;
+import com.nlw.planner.participant.ParticipantService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +31,8 @@ public class TripController {
 
     private final TripRepository repository;
     private final ParticipantService participantService;
+    private final ActivityService activityService;
+    private final LinkService linkService;
 
     @PostMapping()
     public ResponseEntity<TripResponse> createTrip(@RequestBody TripRequest request, UriComponentsBuilder uriBuilder) {
@@ -111,6 +124,53 @@ public class TripController {
                 ResponseEntity.noContent().build() :
                 ResponseEntity.ok(participants);
     }
+
+    @PostMapping("/{id}/activities")
+    public ResponseEntity<ActivityResponse> registerActivity(@PathVariable UUID id,
+                                                             @RequestBody ActivityRequest request) {
+
+        Optional<Trip> tripNullable = this.repository.findById(id);
+
+        if(tripNullable.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var trip = tripNullable.get();
+        var activityResponse = this.activityService.registerActivity(request, trip);
+        return ResponseEntity.ok(activityResponse);
+    }
+
+    @GetMapping("/{id}/activities")
+    public ResponseEntity<List<ActivityDetailResponse>> getAllActivities(@PathVariable UUID id) {
+        var activities = this.activityService.getAllActivitiesFromId(id);
+        return activities.isEmpty() ?
+                ResponseEntity.noContent().build() :
+                ResponseEntity.ok(activities);
+    }
+
+    @PostMapping("/{id}/links")
+    public ResponseEntity<LinkResponse> registerLink(@PathVariable UUID id,
+                                                     @RequestBody LinkRequest request) {
+
+        Optional<Trip> tripNullable = this.repository.findById(id);
+
+        if(tripNullable.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var trip = tripNullable.get();
+        var linkResponse = this.linkService.registerLink(request, trip);
+        return ResponseEntity.ok(linkResponse);
+    }
+
+    @GetMapping("/{id}/links")
+    public ResponseEntity<List<LinkDetailResponse>> getAllLinks(@PathVariable UUID id) {
+        var links = this.linkService.getAllLinksFromTrip(id);
+        return links.isEmpty() ?
+                ResponseEntity.noContent().build() :
+                ResponseEntity.ok(links);
+    }
+
 
     private LocalDateTime parseToLocalDateTime(String textDate) {
         return LocalDateTime.parse(textDate, DateTimeFormatter.ISO_DATE_TIME);
